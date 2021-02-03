@@ -2,35 +2,102 @@
 
 import { app, query, errorHandler, sparqlEscapeUri } from 'mu';
 
-app.get('/', async function( req, res ) {
+app.get('/', async function (req, res) {
   const subject = req.query["subject"];
+
+  const defaultPageNumber = 0;
+  const defaultPageSize = 500;
+
+  const queryResult = await getDirectedLinks(subject, defaultPageNumber, defaultPageSize);
+  const inverseQueryResult = await getInverseLinks(subject, defaultPageNumber, defaultPageSize);
+
+  const response = {
+    directed: queryResult.triples,
+    inverse: inverseQueryResult.triples
+  };
+
+  res.send(response);
+});
+
+app.get('/direct', async function (req, res) {
+  const subject = req.query["subject"];
+
+  const pageNumber = req.query["pageNumber"] || 0;
+  const pageSize = req.query["pageSize"] || 500;
+
+  const response = await getDirectedLinks(subject, pageNumber, pageSize);
+
+  res.send(response);
+});
+
+app.get('/inverse', async function (req, res) {
+  const subject = req.query["subject"];
+
+  const pageNumber = req.query["pageNumber"] || 0;
+  const pageSize = req.query["pageSize"] || 500;
+
+  const response = await getInverseLinks(subject, pageNumber, pageSize)
+  res.send(response);
+});
+
+async function getDirectedLinks(subject, pageNumber, pageSize) {
+  const offset = pageSize * pageNumber;
 
   const queryResult = await query(`SELECT DISTINCT ?p ?o
     WHERE {
       GRAPH <http://mu.semte.ch/application> {
         ${sparqlEscapeUri(subject)} ?p ?o.
       }
-    }
+    } LIMIT ${pageSize}  OFFSET ${offset}
   `);
+
+  const queryResultCount = await query(`SELECT (COUNT( DISTINCT (?o)) as ?count)
+   WHERE {
+     GRAPH <http://mu.semte.ch/application> {
+      ${sparqlEscapeUri(subject)} ?p ?o.
+     }
+   }
+   `);
+  const count = queryResultCount.results.bindings[0]['count'].value;
+  const response = {
+    triples: queryResult.results.bindings.map(({ p: { value: predicate }, o }) => {
+      return { subject, predicate, object: o };
+    }),
+    count: count
+  };
+
+  return response;
+}
+
+async function getInverseLinks(subject, pageNumber, pageSize) {
+  const offset = pageSize * pageNumber;
 
   const inverseQueryResult = await query(`SELECT DISTINCT ?s ?p
     WHERE {
       GRAPH <http://mu.semte.ch/application> {
         ?s ?p ${sparqlEscapeUri(subject)}.
       }
-    }
+    } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
+  const inverseQueryResultCount = await query(`SELECT (COUNT( DISTINCT (?s)) as ?count)
+   WHERE {
+     GRAPH <http://mu.semte.ch/application> {
+       ?s ?p ${sparqlEscapeUri(subject)}.
+     }
+   }
+   `);
+  const count = inverseQueryResultCount.results.bindings[0]['count'].value;
+
   const response = {
-    directed: queryResult.results.bindings.map( ({p: { value: predicate }, o }) => {
-      return {subject, predicate, object: o};
+    triples: inverseQueryResult.results.bindings.map(({ s: { value: inverseSubject }, p: { value: predicate } }) => {
+      return { subject: inverseSubject, predicate, object: subject };
     }),
-    inverse: inverseQueryResult.results.bindings.map(({s: {value: inverseSubject}, p: {value: predicate}}) => {
-      return {subject: inverseSubject, predicate, object: subject};
-    })
+    count: count
   };
 
-  res.send(response);
-} );
+  return response;
+}
+
 
 app.use(errorHandler);
