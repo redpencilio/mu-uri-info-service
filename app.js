@@ -82,10 +82,10 @@ async function getInverseLinks(subject, pageNumber, pageSize) {
     } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
-  const inverseQueryResultCount = await query(`SELECT (COUNT( (?p)) as ?count)
+  const inverseQueryResultCount = await query(`SELECT (COUNT( (?s)) as ?count)
    WHERE {
      GRAPH <http://mu.semte.ch/application> {
-       SELECT DISTINCT ?p ?o WHERE {
+       SELECT DISTINCT ?s ?o WHERE {
          ?s ?p ${sparqlEscapeUri(subject)}.
        }
      }
