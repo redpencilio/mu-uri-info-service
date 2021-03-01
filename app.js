@@ -51,10 +51,12 @@ async function getDirectedLinks(subject, pageNumber, pageSize) {
     } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
-  const queryResultCount = await query(`SELECT (COUNT( DISTINCT (?o)) as ?count)
+  const queryResultCount = await query(`SELECT (COUNT( (?p)) as ?count)
    WHERE {
      GRAPH <http://mu.semte.ch/application> {
-      ${sparqlEscapeUri(subject)} ?p ?o.
+       SELECT DISTINCT ?p ?o WHERE {
+         ${sparqlEscapeUri(subject)} ?p ?o.
+       }
      }
    }
    `);
@@ -80,10 +82,12 @@ async function getInverseLinks(subject, pageNumber, pageSize) {
     } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
-  const inverseQueryResultCount = await query(`SELECT (COUNT( DISTINCT (?s)) as ?count)
+  const inverseQueryResultCount = await query(`SELECT (COUNT( (?p)) as ?count)
    WHERE {
      GRAPH <http://mu.semte.ch/application> {
-       ?s ?p ${sparqlEscapeUri(subject)}.
+       SELECT DISTINCT ?p ?o WHERE {
+         ?s ?p ${sparqlEscapeUri(subject)}.
+       }
      }
    }
    `);
