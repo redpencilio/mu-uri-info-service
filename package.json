@@ -1,0 +1,28 @@
+{
+  "name": "mu-uri-info-service",
+  "version": "0.2.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redpencilio/mu-uri-info-service.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/redpencilio/mu-uri-info-service/issues"
+  },
+  "homepage": "https://github.com/redpencilio/mu-uri-info-service#readme",
+  "dependencies": {
+    "jsonld": "^9.0.0",
+    "jsonld-streaming-serializer": "^4.0.0",
+    "n3": "^1.26.0",
+    "rdf-parse": "^4.0.0",
+    "rdf-serialize": "^4.0.1",
+    "rdf-store-stream": "^3.0.0",
+    "stream-to-string": "^1.2.1"
+  }
+}
