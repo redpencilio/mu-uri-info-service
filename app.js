@@ -78,7 +78,7 @@ async function getInverseLinks(subject, pageNumber, pageSize) {
 
   const inverseQueryResultCount = await query(`SELECT (COUNT( (?s)) as ?count)
    WHERE {
-     SELECT DISTINCT ?s ?o WHERE {
+     SELECT DISTINCT ?s ?p WHERE {
        ?s ?p ${sparqlEscapeUri(subject)}.
      }
    }
