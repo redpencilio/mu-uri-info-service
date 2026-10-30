@@ -2,14 +2,23 @@
 
 import { app, query, errorHandler, sparqlEscapeUri } from 'mu';
 
+function buildPredicateClause(predicate) {
+  if (!predicate) return '';
+  const predicates = (Array.isArray(predicate) ? predicate : [predicate]).filter(Boolean);
+  if (predicates.length === 0) return '';
+  const escapedUris = predicates.map((p) => sparqlEscapeUri(p)).join(' ');
+  return `VALUES ?p { ${escapedUris} }`;
+}
+
 app.get('/', async function (req, res) {
   const subject = req.query["subject"];
+  const predicate = req.query["predicate"];
 
   const defaultPageNumber = 0;
   const defaultPageSize = 500;
 
-  const queryResult = await getDirectedLinks(subject, defaultPageNumber, defaultPageSize);
-  const inverseQueryResult = await getInverseLinks(subject, defaultPageNumber, defaultPageSize);
+  const queryResult = await getDirectedLinks(subject, predicate, defaultPageNumber, defaultPageSize);
+  const inverseQueryResult = await getInverseLinks(subject, predicate, defaultPageNumber, defaultPageSize);
 
   const response = {
     directed: queryResult.triples,
@@ -21,31 +30,35 @@ app.get('/', async function (req, res) {
 
 app.get('/direct', async function (req, res) {
   const subject = req.query["subject"];
+  const predicate = req.query["predicate"];
 
   const pageNumber = req.query["pageNumber"] || 0;
   const pageSize = req.query["pageSize"] || 500;
 
-  const response = await getDirectedLinks(subject, pageNumber, pageSize);
+  const response = await getDirectedLinks(subject, predicate, pageNumber, pageSize);
 
   res.send(response);
 });
 
 app.get('/inverse', async function (req, res) {
   const subject = req.query["subject"];
+  const predicate = req.query["predicate"];
 
   const pageNumber = req.query["pageNumber"] || 0;
   const pageSize = req.query["pageSize"] || 500;
 
-  const response = await getInverseLinks(subject, pageNumber, pageSize)
+  const response = await getInverseLinks(subject, predicate, pageNumber, pageSize);
   res.send(response);
 });
 
-async function getDirectedLinks(subject, pageNumber, pageSize) {
+async function getDirectedLinks(subject, predicate, pageNumber, pageSize) {
   const offset = pageSize * pageNumber;
+  const predicateClause = buildPredicateClause(predicate);
 
   const queryResult = await query(`SELECT DISTINCT ?p ?o
     WHERE {
       ${sparqlEscapeUri(subject)} ?p ?o.
+      ${predicateClause}
     } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
@@ -53,13 +66,14 @@ async function getDirectedLinks(subject, pageNumber, pageSize) {
    WHERE {
      SELECT DISTINCT ?p ?o WHERE {
        ${sparqlEscapeUri(subject)} ?p ?o.
+       ${predicateClause}
      }
    }
    `);
   const count = queryResultCount.results.bindings[0]['count'].value;
   const response = {
-    triples: queryResult.results.bindings.map(({ p: { value: predicate }, o }) => {
-      return { subject, predicate, object: o };
+    triples: queryResult.results.bindings.map(({ p: { value: predicateVal }, o }) => {
+      return { subject, predicate: predicateVal, object: o };
     }),
     count: count
   };
@@ -67,12 +81,14 @@ async function getDirectedLinks(subject, pageNumber, pageSize) {
   return response;
 }
 
-async function getInverseLinks(subject, pageNumber, pageSize) {
+async function getInverseLinks(subject, predicate, pageNumber, pageSize) {
   const offset = pageSize * pageNumber;
+  const predicateClause = buildPredicateClause(predicate);
 
   const inverseQueryResult = await query(`SELECT DISTINCT ?s ?p
     WHERE {
       ?s ?p ${sparqlEscapeUri(subject)}.
+      ${predicateClause}
     } LIMIT ${pageSize}  OFFSET ${offset}
   `);
 
@@ -80,14 +96,15 @@ async function getInverseLinks(subject, pageNumber, pageSize) {
    WHERE {
      SELECT DISTINCT ?s ?o WHERE {
        ?s ?p ${sparqlEscapeUri(subject)}.
+       ${predicateClause}
      }
    }
    `);
   const count = inverseQueryResultCount.results.bindings[0]['count'].value;
 
   const response = {
-    triples: inverseQueryResult.results.bindings.map(({ s: { value: inverseSubject }, p: { value: predicate } }) => {
-      return { subject: inverseSubject, predicate, object: subject };
+    triples: inverseQueryResult.results.bindings.map(({ s: { value: inverseSubject }, p: { value: predicateVal } }) => {
+      return { subject: inverseSubject, predicate: predicateVal, object: subject };
     }),
     count: count
   };
