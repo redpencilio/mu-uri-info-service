@@ -2,14 +2,6 @@
 
 import { app, query, errorHandler, sparqlEscapeUri } from 'mu';
 
-function buildPredicateClause(predicate) {
-  if (!predicate) return '';
-  const predicates = (Array.isArray(predicate) ? predicate : [predicate]).filter(Boolean);
-  if (predicates.length === 0) return '';
-  const escapedUris = predicates.map((p) => sparqlEscapeUri(p)).join(' ');
-  return `VALUES ?p { ${escapedUris} }`;
-}
-
 app.get('/', async function (req, res) {
   const subject = req.query["subject"];
   const predicate = req.query["predicate"];
@@ -50,6 +42,18 @@ app.get('/inverse', async function (req, res) {
   const response = await getInverseLinks(subject, predicate, pageNumber, pageSize);
   res.send(response);
 });
+
+function buildPredicateClause(predicate) {
+  if (predicate) {
+    const predicates = Array.isArray(predicate) ? predicate : [predicate];
+    if (predicates.length) {
+      const escapedUris = predicates.map((p) => sparqlEscapeUri(p)).join(' ');
+      return `VALUES ?p { ${escapedUris} }`;
+    }
+  }
+
+  return '';
+}
 
 async function getDirectedLinks(subject, predicate, pageNumber, pageSize) {
   const offset = pageSize * pageNumber;
