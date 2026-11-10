@@ -68,7 +68,7 @@ docker compose up -d
         }
       }
     ],
-    "count": "1"
+    "count": 1
   },
   "inverse": {
     "triples": [
@@ -78,12 +78,12 @@ docker compose up -d
         "object": "http://example.com/resource/1"
       }
     ],
-    "count": "1"
+    "count": 1
   }
 }
 ```
 
-`GET /direct` and `GET /inverse` return a single result object of the same shape (`{ "triples": [...], "count": "..." }`).
+`GET /direct` and `GET /inverse` return a single result object of the same shape (`{ "triples": [...], "count": 0 }`).
 
 - `triples` contains at most `pageSize` entries.
-- `count` is the total number of matching relations, as a string.
+- `count` is the total number of matching relations, as a number.

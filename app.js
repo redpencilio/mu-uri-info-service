@@ -74,7 +74,7 @@ async function getDirectedLinks(subject, predicate, pageNumber, pageSize) {
      }
    }
    `);
-  const count = queryResultCount.results.bindings[0]['count'].value;
+  const count = parseInt(queryResultCount.results.bindings[0]['count'].value, 10);
   const response = {
     triples: queryResult.results.bindings.map(({ p: { value: predicateVal }, o }) => {
       return { subject, predicate: predicateVal, object: o };
@@ -104,7 +104,7 @@ async function getInverseLinks(subject, predicate, pageNumber, pageSize) {
      }
    }
    `);
-  const count = inverseQueryResultCount.results.bindings[0]['count'].value;
+  const count = parseInt(inverseQueryResultCount.results.bindings[0]['count'].value, 10);
 
   const response = {
     triples: inverseQueryResult.results.bindings.map(({ s: { value: inverseSubject }, p: { value: predicateVal } }) => {
