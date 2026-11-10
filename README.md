@@ -1,34 +1,89 @@
 # mu-uri-info-service
 
-A microservice that provides incoming and outgoing relations for a given subject URI in a semantic.works stack.
+A microservice that returns the incoming and outgoing relations of a given subject URI in a semantic.works stack.
 
-## Overview
+This service is part of the [ember-metis](https://github.com/redpencilio/ember-metis) ecosystem. It provides the backend for listing all direct and inverse relationships of a URI by querying the triplestore.
 
-This service is part of the [ember-metis](https://github.com/redpencilio/ember-metis) ecosystem and provides the backend functionality for listing all direct and inverse relationships of a given URI. It exposes three endpoints that query the triplestore to retrieve related data.
+## How-to guides
 
-## Endpoints
+### Add the service to a stack
 
-- `GET /` - Returns both directed and inverse links for a subject URI
-- `GET /direct` - Returns only outgoing relations from a subject URI
-- `GET /inverse` - Returns only incoming relations to a subject URI
-
-All endpoints accept the following query parameters:
-- `subject` (required) - The URI to find relations for
-- `predicate` (optional) - The URI (or multiple URIs) of the predicate to filter relations by
-- `pageNumber` (optional) - Page number for pagination (default: 0)
-- `pageSize` (optional) - Number of results per page (default: 500)
-
-## Docker Setup
-
-Add this service to your `docker-compose.yml`:
+Add the following service to your `docker-compose.yml`:
 
 ```yaml
 uri-info:
   image: redpencilio/mu-uri-info-service
-  links:
-    - database:database
 ```
 
-## Development
+Next, register the service with the [dispatcher](https://github.com/mu-semtech/mu-dispatcher) so that requests are routed to it. Add the following rules to the dispatcher's `config/dispatcher/dispatcher.ex`:
 
-Built using the [mu-javascript-template](https://github.com/mu-semtech/mu-javascript-template).
+```elixir
+get "/uri-info/*path" do
+  Proxy.forward conn, path, "http://uri-info/"
+end
+```
+
+Restart the dispatcher and bring up the stack to apply the changes:
+
+```bash
+docker compose restart dispatcher
+docker compose up -d
+```
+
+## Reference
+
+### Endpoints
+
+| Method | Path       | Description                                          |
+| ------ | ---------- | ---------------------------------------------------- |
+| `GET`  | `/`        | Returns both directed and inverse links of a subject |
+| `GET`  | `/direct`  | Returns only outgoing relations of a subject         |
+| `GET`  | `/inverse` | Returns only incoming relations to a subject         |
+
+### Query parameters
+
+| Parameter    | Required | Default | Description                                                          |
+| ------------ | -------- | ------- | -------------------------------------------------------------------- |
+| `subject`    | yes      | -       | The URI to find relations for                                        |
+| `predicate`  | no       | -       | The URI of a predicate to filter by. May be repeated for multiple predicates |
+| `pageNumber` | no       | `0`     | Zero-based page number                                               |
+| `pageSize`   | no       | `500`   | Number of results per page                                           |
+
+> **Note:** the root endpoint (`/`) always uses the default pagination (`pageNumber=0`, `pageSize=500`). Use `/direct` and `/inverse` to paginate.
+
+### Response format
+
+`GET /` returns an object with the directed and inverse results:
+
+```json
+{
+  "directed": {
+    "triples": [
+      {
+        "subject": "http://example.com/resource/1",
+        "predicate": "http://schema.org/name",
+        "object": {
+          "type": "literal",
+          "value": "Example"
+        }
+      }
+    ],
+    "count": "1"
+  },
+  "inverse": {
+    "triples": [
+      {
+        "subject": "http://example.com/resource/2",
+        "predicate": "http://schema.org/knows",
+        "object": "http://example.com/resource/1"
+      }
+    ],
+    "count": "1"
+  }
+}
+```
+
+`GET /direct` and `GET /inverse` return a single result object of the same shape (`{ "triples": [...], "count": "..." }`).
+
+- `triples` contains at most `pageSize` entries.
+- `count` is the total number of matching relations, as a string.
