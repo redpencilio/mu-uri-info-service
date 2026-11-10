@@ -14,6 +14,7 @@ This service is part of the [ember-metis](https://github.com/redpencilio/ember-m
 
 All endpoints accept the following query parameters:
 - `subject` (required) - The URI to find relations for
+- `predicate` (optional) - The URI (or multiple URIs) of the predicate to filter relations by
 - `pageNumber` (optional) - Page number for pagination (default: 0)
 - `pageSize` (optional) - Number of results per page (default: 500)
 
