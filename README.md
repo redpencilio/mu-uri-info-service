@@ -12,7 +12,7 @@ Add the following service to your `docker-compose.yml`:
 
 ```yaml
 uri-info:
-  image: redpencilio/mu-uri-info-service
+  image: redpencilio/mu-uri-info-service:0.3.0
 ```
 
 Next, register the service with the [dispatcher](https://github.com/mu-semtech/mu-dispatcher) so that requests are routed to it. Add the following rules to the dispatcher's `config/dispatcher/dispatcher.ex`:
